@@ -8,12 +8,12 @@ if test "$PHP_MYSQL_BINLOG" != "no"; then
 
   dnl --with-mysql-binlog -> check with-path
   SEARCH_PATH="/usr/local /usr"
-  SEARCH_FOR_REPLICATION="/include/binlog_api.h"
+  SEARCH_FOR_REPLICATION="/include/mysql-binlog-events/binlog.h"
 
   if test -r $PHP_MYSQL_BINLOG/$SEARCH_FOR_REPLICATION; then
     MYSQL_REPLICATION_DIR=$PHP_MYSQL_BINLOG
   else
-    AC_MSG_CHECKING([for mysql-replication-listener libraries in default path])
+    AC_MSG_CHECKING([for mysql-binlog-events libraries in default path])
     for i in $SEARCH_PATH ; do
       if test -r $i/$SEARCH_FOR_REPLICATION; then
         MYSQL_REPLICATION_DIR=$i
@@ -30,13 +30,18 @@ if test "$PHP_MYSQL_BINLOG" != "no"; then
 
   PHP_REQUIRE_CXX()
 
-  PHP_ADD_INCLUDE($MYSQL_REPLICATION_DIR/include)
+  PHP_ADD_INCLUDE($MYSQL_REPLICATION_DIR/include/mysql-binlog-events/)
 
   PHP_SUBST(MYSQLBINLOG_SHARED_LIBADD)
   PHP_ADD_LIBRARY(stdc++, 1, MYSQLBINLOG_SHARED_LIBADD)
-
+  PHP_ADD_LIBRARY(pthread, 1, MYSQLBINLOG_SHARED_LIBADD)
+  
   PHP_ADD_LIBPATH($MYSQL_REPLICATION_DIR"/lib")
-  PHP_ADD_LIBRARY(replication, 1, MYSQLBINLOG_SHARED_LIBADD)
+  PHP_ADD_LIBRARY(mysqlstream, 1, MYSQLBINLOG_SHARED_LIBADD)
+  PHP_ADD_LIBRARY(binlogevents, 1, MYSQLBINLOG_SHARED_LIBADD)
 
-  PHP_NEW_EXTENSION(mysqlbinlog, mysqlbinlog.cpp, $ext_shared)
+  PHP_NEW_EXTENSION(mysqlbinlog, mysqlbinlog.cpp \
+                                 MyBinlog.cpp \
+                                 MyEvent.cpp \
+                                 , $ext_shared)
 fi

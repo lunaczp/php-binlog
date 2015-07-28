@@ -58,11 +58,9 @@ PHP_RINIT_FUNCTION(mysqlbinlog);
 PHP_RSHUTDOWN_FUNCTION(mysqlbinlog);
 PHP_MINFO_FUNCTION(mysqlbinlog);
 
-#include <binlog_api.h>
+#include <binlog.h>
 
 void binlog_destruction_handler(zend_rsrc_list_entry *rsrc TSRMLS_DC);
-void proc_event(mysql::Row_of_fields &fields, zval *mysql_fields);
-bool in_watch_wild_tables(char* tbl, int tbl_len, std::string tbl_given TSRMLS_DC);
 
 PHP_FUNCTION(binlog_connect);
 PHP_FUNCTION(binlog_disconnect);
@@ -70,10 +68,9 @@ PHP_FUNCTION(binlog_wait_for_next_event);
 PHP_FUNCTION(binlog_set_position);
 PHP_FUNCTION(binlog_get_position);
 
-typedef mysql::Table_map_event *tbl_map_evt;
 
 ZEND_BEGIN_MODULE_GLOBALS(mysqlbinlog)
-    tbl_map_evt tmev;
+// something here
 ZEND_END_MODULE_GLOBALS(mysqlbinlog)
 
 /* In every utility function you add that needs to use variables 

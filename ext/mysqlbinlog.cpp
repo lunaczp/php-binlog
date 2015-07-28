@@ -30,15 +30,12 @@ extern "C" {
 
 #include "php_mysqlbinlog.h"
 #include "zend_exceptions.h"
+#include "MyBinlog.h"
+#include "MyEvent.h"
 
 #include <iostream>
 #include <map>
 #include <string>
-
-using mysql::Binary_log;
-using mysql::system::create_transport;
-using mysql::system::get_event_type_str;
-using mysql::User_var_event;
 
 ZEND_DECLARE_MODULE_GLOBALS(mysqlbinlog)
 
@@ -71,11 +68,11 @@ ZEND_END_ARG_INFO()
 
 /* True global resources - no need for thread safety here */
 #define BINLOG_LINK_DESC "MySQL Binlog 连接句柄"
+
 static void php_mysqlbinlog_init_globals(zend_mysqlbinlog_globals *mysqlbinlog_globals)
 {
-    mysqlbinlog_globals->tmev = NULL;
+    // something here
 }
-
 
 static int le_binloglink;
 
@@ -144,39 +141,37 @@ static void php_mysqlbinlog_init_globals(zend_mysqlbinlog_globals *mysqlbinlog_g
  */
 PHP_MINIT_FUNCTION(mysqlbinlog)
 {
-    REGISTER_LONG_CONSTANT("BINLOG_UNKNOWN_EVENT"            , mysql::UNKNOWN_EVENT            , CONST_CS | CONST_PERSISTENT);
-    REGISTER_LONG_CONSTANT("BINLOG_START_EVENT_V3"           , mysql::START_EVENT_V3           , CONST_CS | CONST_PERSISTENT);
-    REGISTER_LONG_CONSTANT("BINLOG_QUERY_EVENT"              , mysql::QUERY_EVENT              , CONST_CS | CONST_PERSISTENT);
-    REGISTER_LONG_CONSTANT("BINLOG_STOP_EVENT"               , mysql::STOP_EVENT               , CONST_CS | CONST_PERSISTENT);
-    REGISTER_LONG_CONSTANT("BINLOG_ROTATE_EVENT"             , mysql::ROTATE_EVENT             , CONST_CS | CONST_PERSISTENT);
-    REGISTER_LONG_CONSTANT("BINLOG_INTVAR_EVENT"             , mysql::INTVAR_EVENT             , CONST_CS | CONST_PERSISTENT);
-    REGISTER_LONG_CONSTANT("BINLOG_LOAD_EVENT"               , mysql::LOAD_EVENT               , CONST_CS | CONST_PERSISTENT);
-    REGISTER_LONG_CONSTANT("BINLOG_SLAVE_EVENT"              , mysql::SLAVE_EVENT              , CONST_CS | CONST_PERSISTENT);
-    REGISTER_LONG_CONSTANT("BINLOG_CREATE_FILE_EVENT"        , mysql::CREATE_FILE_EVENT        , CONST_CS | CONST_PERSISTENT);
-    REGISTER_LONG_CONSTANT("BINLOG_APPEND_BLOCK_EVENT"       , mysql::APPEND_BLOCK_EVENT       , CONST_CS | CONST_PERSISTENT);
-    REGISTER_LONG_CONSTANT("BINLOG_EXEC_LOAD_EVENT"          , mysql::EXEC_LOAD_EVENT          , CONST_CS | CONST_PERSISTENT);
-    REGISTER_LONG_CONSTANT("BINLOG_DELETE_FILE_EVENT"        , mysql::DELETE_FILE_EVENT        , CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("BINLOG_UNKNOWN_EVENT"            , binary_log::UNKNOWN_EVENT            , CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("BINLOG_START_EVENT_V3"           , binary_log::START_EVENT_V3           , CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("BINLOG_QUERY_EVENT"              , binary_log::QUERY_EVENT              , CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("BINLOG_STOP_EVENT"               , binary_log::STOP_EVENT               , CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("BINLOG_ROTATE_EVENT"             , binary_log::ROTATE_EVENT             , CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("BINLOG_INTVAR_EVENT"             , binary_log::INTVAR_EVENT             , CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("BINLOG_LOAD_EVENT"               , binary_log::LOAD_EVENT               , CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("BINLOG_SLAVE_EVENT"              , binary_log::SLAVE_EVENT              , CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("BINLOG_CREATE_FILE_EVENT"        , binary_log::CREATE_FILE_EVENT        , CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("BINLOG_APPEND_BLOCK_EVENT"       , binary_log::APPEND_BLOCK_EVENT       , CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("BINLOG_EXEC_LOAD_EVENT"          , binary_log::EXEC_LOAD_EVENT          , CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("BINLOG_DELETE_FILE_EVENT"        , binary_log::DELETE_FILE_EVENT        , CONST_CS | CONST_PERSISTENT);
 
-    REGISTER_LONG_CONSTANT("BINLOG_NEW_LOAD_EVENT"           , mysql::NEW_LOAD_EVENT           , CONST_CS | CONST_PERSISTENT);
-    REGISTER_LONG_CONSTANT("BINLOG_RAND_EVENT"               , mysql::RAND_EVENT               , CONST_CS | CONST_PERSISTENT);
-    REGISTER_LONG_CONSTANT("BINLOG_USER_VAR_EVENT"           , mysql::USER_VAR_EVENT           , CONST_CS | CONST_PERSISTENT);
-    REGISTER_LONG_CONSTANT("BINLOG_FORMAT_DESCRIPTION_EVENT" , mysql::FORMAT_DESCRIPTION_EVENT , CONST_CS | CONST_PERSISTENT);
-    REGISTER_LONG_CONSTANT("BINLOG_XID_EVENT"                , mysql::XID_EVENT                , CONST_CS | CONST_PERSISTENT);
-    REGISTER_LONG_CONSTANT("BINLOG_BEGIN_LOAD_QUERY_EVENT"   , mysql::BEGIN_LOAD_QUERY_EVENT   , CONST_CS | CONST_PERSISTENT);
-    REGISTER_LONG_CONSTANT("BINLOG_EXECUTE_LOAD_QUERY_EVENT" , mysql::EXECUTE_LOAD_QUERY_EVENT , CONST_CS | CONST_PERSISTENT);
-    REGISTER_LONG_CONSTANT("BINLOG_TABLE_MAP_EVENT"          , mysql::TABLE_MAP_EVENT          , CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("BINLOG_NEW_LOAD_EVENT"           , binary_log::NEW_LOAD_EVENT           , CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("BINLOG_RAND_EVENT"               , binary_log::RAND_EVENT               , CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("BINLOG_USER_VAR_EVENT"           , binary_log::USER_VAR_EVENT           , CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("BINLOG_FORMAT_DESCRIPTION_EVENT" , binary_log::FORMAT_DESCRIPTION_EVENT , CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("BINLOG_XID_EVENT"                , binary_log::XID_EVENT                , CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("BINLOG_BEGIN_LOAD_QUERY_EVENT"   , binary_log::BEGIN_LOAD_QUERY_EVENT   , CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("BINLOG_EXECUTE_LOAD_QUERY_EVENT" , binary_log::EXECUTE_LOAD_QUERY_EVENT , CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("BINLOG_TABLE_MAP_EVENT"          , binary_log::TABLE_MAP_EVENT          , CONST_CS | CONST_PERSISTENT);
 
-    REGISTER_LONG_CONSTANT("BINLOG_PRE_GA_WRITE_ROWS_EVENT"  , mysql::PRE_GA_WRITE_ROWS_EVENT  , CONST_CS | CONST_PERSISTENT);
-    REGISTER_LONG_CONSTANT("BINLOG_PRE_GA_UPDATE_ROWS_EVENT" , mysql::PRE_GA_UPDATE_ROWS_EVENT , CONST_CS | CONST_PERSISTENT);
-    REGISTER_LONG_CONSTANT("BINLOG_PRE_GA_DELETE_ROWS_EVENT" , mysql::PRE_GA_DELETE_ROWS_EVENT , CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("BINLOG_PRE_GA_WRITE_ROWS_EVENT"  , binary_log::PRE_GA_WRITE_ROWS_EVENT  , CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("BINLOG_PRE_GA_UPDATE_ROWS_EVENT" , binary_log::PRE_GA_UPDATE_ROWS_EVENT , CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("BINLOG_PRE_GA_DELETE_ROWS_EVENT" , binary_log::PRE_GA_DELETE_ROWS_EVENT , CONST_CS | CONST_PERSISTENT);
 
-    REGISTER_LONG_CONSTANT("BINLOG_WRITE_ROWS_EVENT"         , mysql::WRITE_ROWS_EVENT         , CONST_CS | CONST_PERSISTENT);
-    REGISTER_LONG_CONSTANT("BINLOG_UPDATE_ROWS_EVENT"        , mysql::UPDATE_ROWS_EVENT        , CONST_CS | CONST_PERSISTENT);
-    REGISTER_LONG_CONSTANT("BINLOG_DELETE_ROWS_EVENT"        , mysql::DELETE_ROWS_EVENT        , CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("BINLOG_WRITE_ROWS_EVENT"         , binary_log::WRITE_ROWS_EVENT         , CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("BINLOG_UPDATE_ROWS_EVENT"        , binary_log::UPDATE_ROWS_EVENT        , CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("BINLOG_DELETE_ROWS_EVENT"        , binary_log::DELETE_ROWS_EVENT        , CONST_CS | CONST_PERSISTENT);
 
-    REGISTER_LONG_CONSTANT("BINLOG_INCIDENT_EVENT"           , mysql::INCIDENT_EVENT           , CONST_CS | CONST_PERSISTENT);
-
-    REGISTER_LONG_CONSTANT("BINLOG_USER_DEFINED"             , mysql::USER_DEFINED             , CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("BINLOG_INCIDENT_EVENT"           , binary_log::INCIDENT_EVENT           , CONST_CS | CONST_PERSISTENT);
 
     /* If you have INI entries, uncomment these lines 
     REGISTER_INI_ENTRIES();
@@ -240,10 +235,9 @@ PHP_MINFO_FUNCTION(mysqlbinlog)
  */
 void binlog_destruction_handler(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
-    Binary_log *bp = (Binary_log *)rsrc->ptr;
+    MyBinlog *bp = (MyBinlog *)rsrc->ptr;
     if (bp) {
         bp->disconnect();
-        delete bp;
     }
 }
 /* }}} */
@@ -254,30 +248,30 @@ PHP_FUNCTION(binlog_connect)
     int   arg_len;
     // make server_id as long to fix unspecified behaviour in zend_parse_parameters
     long  server_id = 1;
-    Binary_log *bp;
+    MyBinlog *bp;
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|l", &arg, &arg_len, &server_id) == FAILURE) {
         RETURN_NULL();
     }
-    bp = new Binary_log (create_transport(arg));
-    if(server_id < 0) {
-        server_id = 1;
-    }
-    bp->set_server_id((int)server_id);
-    if(bp->connect()) {
+    bp = new MyBinlog;
+
+    try {
+        bp->connect(std::string(arg));
+    } catch(const std::runtime_error& le) {
         zend_throw_exception(zend_exception_get_default(TSRMLS_C), "Connect to mysql failed", 0 TSRMLS_CC);
     }
+    
     ZEND_REGISTER_RESOURCE(return_value, bp, le_binloglink);
 }
 
 PHP_FUNCTION(binlog_disconnect)
 {
     zval *link; int id = -1;
-    Binary_log *bp;
+    MyBinlog *bp;
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &link) == FAILURE) {
         RETURN_NULL();
     }
-    ZEND_FETCH_RESOURCE(bp, Binary_log *, &link, id, BINLOG_LINK_DESC, le_binloglink);
+    ZEND_FETCH_RESOURCE(bp, MyBinlog *, &link, id, BINLOG_LINK_DESC, le_binloglink);
 
     if(!bp) {
         zend_throw_exception(zend_exception_get_default(TSRMLS_C),
@@ -292,225 +286,53 @@ PHP_FUNCTION(binlog_wait_for_next_event)
     zval *link; int id = -1;
     zval *db_zval_p  = NULL;
     zval *tbl_zval_p = NULL;
-    Binary_log *bp;
-    Binary_log_event *event;
+    MyBinlog *bp;
+    MyEvent* event = new MyEvent;
+    std::string msg;
     
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r|zz", &link, &db_zval_p, &tbl_zval_p) == FAILURE) {
         RETURN_NULL();
     }
 
-    ZEND_FETCH_RESOURCE(bp, Binary_log *, &link, id, BINLOG_LINK_DESC, le_binloglink);
+    ZEND_FETCH_RESOURCE(bp, MyBinlog *, &link, id, BINLOG_LINK_DESC, le_binloglink);
 
     if (!bp) {
         zend_throw_exception(zend_exception_get_default(TSRMLS_C),
                              "Wrong resource handler passed to binlog_wait_for_next_event()",
                              0 TSRMLS_CC);
     }
-
-    int result = bp->wait_for_next_event(&event);
     
-    if (result == ERR_EOF) RETURN_NULL();
+    try {
+        msg = bp->get_next_event(event);
+    } catch(const std::exception& le) {
+        RETURN_NULL();
+    }
 
     // array initial
     array_init(return_value);
     
-    add_assoc_long(return_value, "type_code", event->get_event_type());
-    add_assoc_string(return_value, "type_str", (char *)get_event_type_str(event->get_event_type()), 1);
-    add_assoc_long(return_value, "next_position", event->get_next_position());
-    
-    mysql::Log_event_type event_type = event->get_event_type();
+    add_assoc_long(return_value, "type_code", event->event_type);
+    add_assoc_string(return_value, "type_str", (char *)(event->event_type_str).c_str(), 1);
+    add_assoc_long(return_value, "next_position", event->position);
 
-    switch (event_type) {
-        case mysql::QUERY_EVENT:
-        {
-            const mysql::Query_event *qev= static_cast<const mysql::Query_event *>(event);
-            add_assoc_string(return_value, "query", (char *)(qev->query).c_str(), 1);
-            add_assoc_string(return_value, "db_name", (char *)(qev->db_name).c_str(), 1);
-        }
-        break;
-        case mysql::ROTATE_EVENT:
-        {
-            mysql::Rotate_event *rot= static_cast<mysql::Rotate_event *>(event);
-            add_assoc_string(return_value, "filename", (char *)rot->binlog_file.c_str(), 1);
-            add_assoc_long(return_value, "position", rot->binlog_pos);
-        }
-        break;
-        case mysql::TABLE_MAP_EVENT:
-        {
-            // ensure this is the right place to delete table map event.
-            if (MYSQLBINLOG_G(tmev)) {
-                delete MYSQLBINLOG_G(tmev);
-                MYSQLBINLOG_G(tmev) = NULL;
-            }
-            MYSQLBINLOG_G(tmev) = static_cast<mysql::Table_map_event *>(event);
-
-            tbl_map_evt _table_map_event = MYSQLBINLOG_G(tmev);
-            
-            add_assoc_string(return_value, "db_name", (char *) _table_map_event->db_name.c_str(), 1);
-            add_assoc_long(return_value,   "table_id", _table_map_event->table_id);
-            add_assoc_string(return_value, "table_name", (char *) _table_map_event->table_name.c_str(), 1);
-        }
-        break;
-        case mysql::WRITE_ROWS_EVENT:
-        case mysql::UPDATE_ROWS_EVENT:
-        case mysql::DELETE_ROWS_EVENT:
-        {
-            tbl_map_evt _table_map_event = MYSQLBINLOG_G(tmev);
-            
-            add_assoc_string(return_value, "db_name", (char *) _table_map_event->db_name.c_str(), 1);            
-            add_assoc_string(return_value, "table_name", (char *) _table_map_event->table_name.c_str(), 1);
-
-            // replication **watch** dbs
-            if(db_zval_p != NULL) {
-                if(Z_TYPE_P(db_zval_p) == IS_STRING) {
-                    if(strcmp(Z_STRVAL_P(db_zval_p), (char *) _table_map_event->db_name.c_str())) {
-                        break;
-                    }
-                } else if(Z_TYPE_P(db_zval_p) == IS_ARRAY) {
-                    zval **db_pp;
-                    bool db_need_watch = false;
-                    HashPosition array_db_pointer;
-                    for (zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(db_zval_p), &array_db_pointer);
-                         zend_hash_get_current_data_ex(Z_ARRVAL_P(db_zval_p), (void **)&db_pp, &array_db_pointer) == SUCCESS;
-                         zend_hash_move_forward_ex(Z_ARRVAL_P(db_zval_p), &array_db_pointer)) {
-                        if(Z_TYPE_PP(db_pp) != IS_STRING) {
-                            zend_throw_exception(zend_exception_get_default(TSRMLS_C),
-                                                 "Database name should be an array of strings",
-                                                 0 TSRMLS_CC);                            
-                        }
-                        convert_to_string_ex(db_pp);
-                        if(!strcmp(Z_STRVAL_PP(db_pp), (char *) _table_map_event->db_name.c_str())) {
-                            db_need_watch = true;
-                            break;
-                        }
-                    }
-                    if(!db_need_watch) break;              
-                }
-            }
-            
-            // replication wild **watch** tables
-            if(tbl_zval_p != NULL) {
-                if(Z_TYPE_P(tbl_zval_p) == IS_STRING) {
-                    // printf("table string given:\t%s\n", Z_STRVAL_P(tbl_zval_p));
-                    if(!in_watch_wild_tables(Z_STRVAL_P(tbl_zval_p),
-                                             Z_STRLEN_P(tbl_zval_p),
-                                             _table_map_event->table_name TSRMLS_CC)) {
-                        break;
-                    }
-                } else if(Z_TYPE_P(tbl_zval_p) == IS_ARRAY) {
-                    zval **tbl_pp;
-                    bool tbl_need_watch = false;
-                    HashPosition array_tbl_pointer;
-                    for (zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(tbl_zval_p), &array_tbl_pointer);
-                         zend_hash_get_current_data_ex(Z_ARRVAL_P(tbl_zval_p), (void **)&tbl_pp, &array_tbl_pointer) == SUCCESS;
-                         zend_hash_move_forward_ex(Z_ARRVAL_P(tbl_zval_p), &array_tbl_pointer)) {
-                        if(Z_TYPE_PP(tbl_pp) != IS_STRING) {
-                            zend_throw_exception(zend_exception_get_default(TSRMLS_C),
-                                                 "Table name should be an array of strings",
-                                                 0 TSRMLS_CC);                            
-                        }
-                        convert_to_string_ex(tbl_pp);
-                        // printf("table need watch %s\n", Z_STRVAL_PP(tbl_pp));
-                        if(in_watch_wild_tables(Z_STRVAL_PP(tbl_pp),
-                                                Z_STRLEN_PP(tbl_pp),
-                                                _table_map_event->table_name TSRMLS_CC)) {
-                            // printf("find it: %s\n", Z_STRVAL_PP(tbl_pp));
-                            tbl_need_watch = true;
-                            break;
-                        }
-                    }
-                    if(!tbl_need_watch) break;
-                } else {
-                    zend_throw_exception(zend_exception_get_default(TSRMLS_C),
-                                         "Only string and array of strings are accepted",
-                                         0 TSRMLS_CC);
-                }
-            }
-            
-            zval *mysql_rows = NULL;
-            MAKE_STD_ZVAL(mysql_rows);
-            array_init(mysql_rows);
-            
-            mysql::Row_event *rev= static_cast<mysql::Row_event *>(event);
-            mysql::Row_event_set rows(rev, _table_map_event);
-            mysql::Row_event_set::iterator itor = rows.begin();
-            
-            int i=0;
-            do {
-                mysql::Row_of_fields fields = *itor;
-                zval *mysql_row = NULL;
-                MAKE_STD_ZVAL(mysql_row);
-                array_init(mysql_row);
-                
-                if (event_type == mysql::WRITE_ROWS_EVENT) {
-                    proc_event(fields, mysql_row);
-                } else if(event_type == mysql::UPDATE_ROWS_EVENT) {
-                    itor++;
-                    mysql::Row_of_fields new_fields = *itor;
-                    zval *mysql_new_row;
-                    MAKE_STD_ZVAL(mysql_new_row);
-                    array_init(mysql_new_row);
-                    // old data
-                    proc_event(fields, mysql_row);
-                    // new data
-                    proc_event(new_fields, mysql_new_row);
-                    // add new row to zval
-                    add_index_zval(mysql_rows, i++, mysql_new_row);
-
-                } else if(event_type == mysql::DELETE_ROWS_EVENT) {
-                    proc_event(fields, mysql_row);
-                }
-                add_index_zval(mysql_rows, i++, mysql_row);
-            } while (++itor != rows.end());
-
-            add_assoc_zval(return_value, "rows", mysql_rows);
-        }
-        break;
+    if(event->is_data_affected()) {
+        add_assoc_string(return_value, "message", (char *)(event->message).c_str(), 1);
     }
-    if (event_type != mysql::TABLE_MAP_EVENT) {
-        delete event;
-    }
-}
 
-void proc_event(mysql::Row_of_fields &fields, zval *mysql_fields)
-{
-  mysql::Converter converter;
-  mysql::Row_of_fields::iterator itor = fields.begin();
-  int i = 0;
-  do {
-      mysql::system::enum_field_types type = itor->type();
-      if (itor->is_null()) {
-          add_index_long(mysql_fields, i++, 0);
-      } else if (type == mysql::system::MYSQL_TYPE_FLOAT) {
-          add_index_double(mysql_fields, i++, itor->as_float());
-      } else if (type == mysql::system::MYSQL_TYPE_DOUBLE) {
-          add_index_double(mysql_fields, i++, itor->as_double());
-      } else if (type == mysql::system::MYSQL_TYPE_TINY) {
-          add_index_long(mysql_fields, i++, itor->as_int8());
-      } else if (type == mysql::system::MYSQL_TYPE_SHORT) {
-          add_index_long(mysql_fields, i++, itor->as_int16());
-      } else if (type == mysql::system::MYSQL_TYPE_LONG) {
-          add_index_long(mysql_fields, i++, itor->as_int32());
-      } else {
-          std::string out;
-          converter.to(out, *itor);
-          // std::cout << "String: " << out << std::endl;
-          add_index_string(mysql_fields, i++, (char *)out.c_str(), 1);
-      }
-  } while(++itor != fields.end());
+    delete event;
 }
 
 PHP_FUNCTION(binlog_set_position)
 {
     zval *link, *file = NULL;
     int result, id = -1; long position;
-    Binary_log *bp;
+    MyBinlog *bp;
     
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rl|z!", &link, &position, &file) == FAILURE) {
         RETURN_NULL();
     }
 
-    ZEND_FETCH_RESOURCE(bp, Binary_log *, &link, id, BINLOG_LINK_DESC, le_binloglink);
+    ZEND_FETCH_RESOURCE(bp, MyBinlog *, &link, id, BINLOG_LINK_DESC, le_binloglink);
 
     if (!bp) {
         php_error_docref(NULL TSRMLS_CC, E_WARNING, "Wrong resource handler passed to binlog_set_position().");
@@ -518,9 +340,9 @@ PHP_FUNCTION(binlog_set_position)
     }
 
     if (!file) {
-        result = bp->set_position(position);
+        result = bp->get_raw()->set_position(position);
     } else if (Z_TYPE_P(file) == IS_STRING) {
-        result = bp->set_position(Z_STRVAL_P(file), position);
+        result = bp->get_raw()->set_position(Z_STRVAL_P(file), position);
     } else {
         php_error_docref(NULL TSRMLS_CC, E_WARNING, "filename must be a string");
         RETURN_FALSE;
@@ -543,13 +365,13 @@ PHP_FUNCTION(binlog_get_position)
     zval *link, *file = NULL;
     int id = -1;
     unsigned long long position;
-    Binary_log *bp;
+    MyBinlog *bp;
     
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r|z", &link, &file) == FAILURE) {
         RETURN_NULL();
     }
 
-    ZEND_FETCH_RESOURCE(bp, Binary_log *, &link, id, BINLOG_LINK_DESC, le_binloglink);
+    ZEND_FETCH_RESOURCE(bp, MyBinlog *, &link, id, BINLOG_LINK_DESC, le_binloglink);
 
     if (!bp) {
         php_error_docref(NULL TSRMLS_CC, E_WARNING, "Wrong resource handler passed to binlog_get_position().");
@@ -557,34 +379,15 @@ PHP_FUNCTION(binlog_get_position)
     }
 
     std::string filename;
+    position = bp->get_raw()->get_position();
     
-    if (!file) {
-        RETURN_LONG(bp->get_position());
-    } else {
+    if (file) {
         zval_dtor(file);
-        position = bp->get_position(filename);
+        bp->get_raw()->get_position(filename);
         ZVAL_STRING(file, filename.c_str(), 1);
-        RETURN_LONG(position);
     }
-}
-
-bool in_watch_wild_tables(char* tbl, int tbl_len, std::string tbl_given TSRMLS_DC)
-{
-    // printf("table :\t%s\tlen: %d\n", tbl, tbl_len);
-    if(tbl[tbl_len-1] == '*') {
-        char tbl_prefix[tbl_len-1];
-        strncpy(tbl_prefix, tbl, tbl_len-1);
-        tbl_prefix[tbl_len-1] = '\0';
-        // printf("table prefix:\t%s\n", tbl_prefix);
-        // printf("table given:\t%s\n", tbl_given.c_str());
-        std::size_t found = tbl_given.find(tbl_prefix);
-        if(std::string::npos == found) {
-            return false;
-        } 
-    } else if(strcmp(tbl, (char *) tbl_given.c_str())) {
-        return false;
-    }
-    return true;
+    
+    RETURN_LONG(position);
 }
 
 /*
