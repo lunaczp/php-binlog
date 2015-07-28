@@ -15,22 +15,24 @@ Our group use PHP to develop web projects. So if we have a PHP extension to do t
 
 Dependence
 --------------------
-* MySQL Replication Listener Library (https://github.com/BullSoft/mysql-replication-listener)
+* MySQL Binlog Events
+(http://downloads.mysql.com/snapshots/pb/mysql-1.0.0-labs-binlog-events/mysql-binlog-events-1.0.0-src.tar.gz)
+    - Download the source code of mysql-5.7.x (http://dev.mysql.com/downloads/mysql/)
+    from the tab Development Releases.
+    - Download the binaries of the same version. There are few header files which
+   are needed for mysql-binlog compilation and they only come as part of the
+   source file.
 * PHP 5.3.X
 
 Install
 --------------------
-First, install mysql-replication-listener.
-
-$ cmake . -DCMAKE_INSTALL_PREFIX=/home/work/mysql-replication
-
-$ make && make install
+First, install mysql-binlog-events, see the README in the source package.
 
 Then change to php-binlog ext directory,
 
 $ /home/work/local/php/bin/phpize
 
-$ ./confingure --with-php-config=/home/work/local/php/bin/php-config --with-mysql-binlog=/home/work/mysql-replication
+$ ./confingure --with-php-config=/home/work/local/php/bin/php-config --with-mysql-binlog=/usr/local/
 
 $ make
 
