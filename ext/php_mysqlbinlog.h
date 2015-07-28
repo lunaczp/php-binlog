@@ -70,7 +70,9 @@ PHP_FUNCTION(binlog_get_position);
 
 
 ZEND_BEGIN_MODULE_GLOBALS(mysqlbinlog)
-// something here
+    bool flag;
+    long position;
+    std::string filename;
 ZEND_END_MODULE_GLOBALS(mysqlbinlog)
 
 /* In every utility function you add that needs to use variables 

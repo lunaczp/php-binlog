@@ -71,7 +71,9 @@ ZEND_END_ARG_INFO()
 
 static void php_mysqlbinlog_init_globals(zend_mysqlbinlog_globals *mysqlbinlog_globals)
 {
-    // something here
+    mysqlbinlog_globals->filename = "";
+    mysqlbinlog_globals->position = 0;
+    mysqlbinlog_globals->flag = false;
 }
 
 static int le_binloglink;
@@ -246,15 +248,17 @@ PHP_FUNCTION(binlog_connect)
 {
     char *arg = NULL;
     int   arg_len;
-    // make server_id as long to fix unspecified behaviour in zend_parse_parameters
-    long  server_id = 1;
     MyBinlog *bp;
 
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|l", &arg, &arg_len, &server_id) == FAILURE) {
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &arg, &arg_len) == FAILURE) {
         RETURN_NULL();
     }
+    
     bp = new MyBinlog;
-
+    if(MYSQLBINLOG_G(flag) == true) {
+        bp->set_position(MYSQLBINLOG_G(position));
+        bp->set_filename(MYSQLBINLOG_G(filename));
+    }
     try {
         bp->connect(std::string(arg));
     } catch(const std::runtime_error& le) {
@@ -324,40 +328,23 @@ PHP_FUNCTION(binlog_wait_for_next_event)
 
 PHP_FUNCTION(binlog_set_position)
 {
-    zval *link, *file = NULL;
-    int result, id = -1; long position;
-    MyBinlog *bp;
+    long position;
+    zval *file = NULL;
+    std::string filename;
     
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rl|z!", &link, &position, &file) == FAILURE) {
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l|z!", &position, &file) == FAILURE) {
         RETURN_NULL();
     }
-
-    ZEND_FETCH_RESOURCE(bp, MyBinlog *, &link, id, BINLOG_LINK_DESC, le_binloglink);
-
-    if (!bp) {
-        php_error_docref(NULL TSRMLS_CC, E_WARNING, "Wrong resource handler passed to binlog_set_position().");
-        RETURN_NULL();
-    }
-
+    MYSQLBINLOG_G(flag) = true;
+    MYSQLBINLOG_G(position) = position;
     if (!file) {
-        result = bp->get_raw()->set_position(position);
     } else if (Z_TYPE_P(file) == IS_STRING) {
-        result = bp->get_raw()->set_position(Z_STRVAL_P(file), position);
+        MYSQLBINLOG_G(filename) = std::string(Z_STRVAL_P(file));
     } else {
         php_error_docref(NULL TSRMLS_CC, E_WARNING, "filename must be a string");
         RETURN_FALSE;
     }
-    switch(result) {
-        case ERR_OK:
-            RETURN_TRUE;
-            break;
-        case ERR_EOF:
-            RETURN_NULL();
-            break;
-       default:
-           RETURN_FALSE;
-           break;
-    }
+    RETURN_TRUE;
 }
 
 PHP_FUNCTION(binlog_get_position)
@@ -378,15 +365,14 @@ PHP_FUNCTION(binlog_get_position)
         RETURN_NULL();
     }
 
-    std::string filename;
-    position = bp->get_raw()->get_position();
-    
-    if (file) {
+    if (!file) {
+        position = bp->get_raw()->get_position();
+    } else {
+        std::string filename;
         zval_dtor(file);
-        bp->get_raw()->get_position(filename);
+        position = bp->get_raw()->get_position(filename);
         ZVAL_STRING(file, filename.c_str(), 1);
     }
-    
     RETURN_LONG(position);
 }
 

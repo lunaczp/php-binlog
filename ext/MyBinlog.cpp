@@ -75,8 +75,16 @@ int get_number_of_events() {
 int MyBinlog::connect(std::string uri) {
     m_drv = create_transport(uri.c_str());
     m_binlog = new Binary_log(m_drv);
+    int error_number;
 
-    int error_number = m_binlog->connect();
+    if(this->get_filename() != "") {
+        error_number = m_binlog->connect(this->get_filename(), this->get_position());
+    } else if(this->get_position() > 0) {
+        m_drv->get_position(&m_filename, NULL);
+        error_number = m_binlog->connect(this->get_filename(), this->get_position());
+    } else {
+        error_number = m_binlog->connect();
+    }
 
     if (const char* msg = str_error(error_number)) {
         throw new std::runtime_error(std::string(msg));

@@ -29,6 +29,26 @@ public:
 private:
     Binary_log_driver *m_drv;
     Binary_log *m_binlog;
+public:
+    const std::string &get_filename() const {
+        return m_filename;
+    }
+
+    void set_filename(const std::string &m_filename) {
+        MyBinlog::m_filename = m_filename;
+    }
+
+    long get_position() const {
+        return m_position;
+    }
+
+    void set_position(long m_position) {
+        MyBinlog::m_position = m_position;
+    }
+
+private:
+    std::string m_filename = "";
+    long m_position = 0;
     std::map<int, std::string> m_tid_tname;
     Table_map_event *m_tm_event;
 };
