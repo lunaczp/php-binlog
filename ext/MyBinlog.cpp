@@ -220,7 +220,8 @@ MyBinlog::~MyBinlog() {
 }
 
 MyBinlog::MyBinlog() {
-
+    m_filename = "";
+    m_position = 0;
 }
 
 Binary_log *MyBinlog::get_raw() {

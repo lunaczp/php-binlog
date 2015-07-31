@@ -47,8 +47,8 @@ public:
     }
 
 private:
-    std::string m_filename = "";
-    long m_position = 0;
+    std::string m_filename;
+    long m_position;
     std::map<int, std::string> m_tid_tname;
     Table_map_event *m_tm_event;
 };

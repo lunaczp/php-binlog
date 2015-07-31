@@ -5,7 +5,8 @@
 #include "MyEvent.h"
 
 MyEvent::MyEvent() {
-
+    table = "";
+    message = "";
 }
 
 MyEvent::~MyEvent() {

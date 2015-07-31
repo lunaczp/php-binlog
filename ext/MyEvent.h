@@ -17,8 +17,8 @@ public:
 
     std::string event_type_str;
     Log_event_type event_type;
-    std::string table = "";
-    std::string message = "";
+    std::string table;
+    std::string message;
     unsigned long long position;
 };
 
