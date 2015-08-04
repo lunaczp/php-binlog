@@ -282,7 +282,8 @@ PHP_FUNCTION(binlog_disconnect)
                              "Wrong resource handler passed to binlog_disconnect",
                              0 TSRMLS_CC);        
     }
-    bp->disconnect();
+    // free resource
+    zend_list_delete(Z_LVAL_P(link));
 }
 
 PHP_FUNCTION(binlog_wait_for_next_event)

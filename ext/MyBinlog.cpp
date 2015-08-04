@@ -85,7 +85,7 @@ int MyBinlog::connect(std::string uri) {
     } else {
         error_number = m_binlog->connect();
     }
-
+    
     if (const char* msg = str_error(error_number)) {
         throw new std::runtime_error(std::string(msg));
     }
