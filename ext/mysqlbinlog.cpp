@@ -321,10 +321,12 @@ PHP_FUNCTION(binlog_wait_for_next_event)
     add_assoc_long(return_value, "next_position", event->position);
 
     if(event->is_data_affected()) {
-        add_assoc_string(return_value, "message", (char *)(event->message).c_str(), 1);
+        // std::cout << event->message << std::endl;
+        add_assoc_stringl(return_value, "message", (char *)(event->message).c_str(), (event->message).size(), 1);
     }
 
     delete event;
+    event = NULL;
 }
 
 PHP_FUNCTION(binlog_set_position)

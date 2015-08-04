@@ -184,7 +184,7 @@ std::string MyBinlog::get_next_event(MyEvent *my_event) {
                     do {
                         std::string str;
                         converter.to(str, *field_it);
-
+                                              
                         e_str.append("\"" + str + "\"");
 
                         if (field_it != fields.end()) {
